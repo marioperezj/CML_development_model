@@ -17,7 +17,7 @@ cou=0 #This variable will be a counter of how many iteratios are in the simulati
 l=0 # This is a loop that allow us to run the same simulation many times to get the necessary statistics
 #while l<1: #loop that creates many instances of the iteration
 #    l=l+1 #updating the index of the loop
-gamma=5
+gamma=2.5
 n=5  #NUmber of levels in the hierarchy
 events=6 #Number of different events happening in the hierarchy for instance symetric cell division, death, mutation,etc.
 t=np.zeros((n*events,3)) #Initializing the static array that will storage the levels and distinct rates of each one
@@ -27,31 +27,34 @@ for i in np.arange(n): #This procedure creates the array in first column is the 
         t[events*i+k-1:events*i+k,1]=k #The third column is the value of each one of the rates
         t[events*i+k-1:events*i+k,0]=i+1
         
-c=np.ones((n,2)) #Initializing the array that storage that will storage the number of cells in each level
-c[0,0]=100 #Also initiaties the number of cells in each level, also the total differentiation rate per level
+c=np.zeros((n,2)) #Initializing the array that storage that will storage the number of cells in each level
+c[0,0]=10 #Also initiaties the number of cells in each level, also the total differentiation rate per level
 
-t[3,2]=0.5
-t[4,2]=0.5 #initializing the different rates for each one of the levels in the hierarchy
+for i in np.arange(n):
+    c[i,0]=1000
+
+t[3,2]=0.8 #initializing the different rates for each one of the levels in the hierarchy
+t[27,2]=1
+t[28,2]=1
 t[n*events-1,2]=2.0
-t[(n-1)*events-1,2]=1
-t[n*events-3,2]=0
+t[(n-1)*events-1,2]=1.0
 
 for i in np.arange(2,n):
     t[((n-i)*events)-1,2]=t[(n-(i-1))*events-1,2]/gamma
     
 for i in np.arange(2,n):
-    t[(i)*events-3,2]=0.7
+    t[(i)*events-3,2]=0.8
     
 for i in np.arange(1,n-1):
-    t[(i+1)*events-2,2]=(2)*(t[(i)*events-1,2]/t[(i+1)*events-1,2])/t[(i)*events-3,2]
+    t[(i)*events+4,2]=(2*t[(i-1)*events+5,2])/(t[(i)*events+5,2]*t[(i)*events+3,2])
 #    t[(i+1)*events-3,2]=(2)*(t[(i)*events-1,2]/t[(i+1)*events-1,2])/t[(i)*events-2,2]
     
 for i in np.arange(0,n):
-    t[i*events+1,2]=0.5*t[(i+1)*events-1,2]*t[i*events+3,2]
-    t[i*events,2]=0.5*t[(i+1)*events-1,2]*t[i*events+3,2]*(1-t[(i+1)*events-2,2])
-
+    t[i*events+1,2]=0.5*t[(i)*events+5,2]*t[i*events+3,2]
+    t[i*events,2]=0.5*t[(i)*events+5,2]*t[i*events+3,2]*(1-t[(i)*events+4,2])
+    
 x=0 #Initializing the index for the Monte Carlo algorithm.
-while x<100000: #Stop the Kinetic Monte Carlo algorithm after a definite time. 
+while x<10000: #Stop the Kinetic Monte Carlo algorithm after a definite time. 
     
     if np.amax(c)==0: #Computing the sum of the total number of cells WRONG!!!
         break
@@ -79,7 +82,7 @@ while x<100000: #Stop the Kinetic Monte Carlo algorithm after a definite time.
     k_m=np.append(k_m,cum_sum,axis=1)
     
     max_list=np.amax(k_m[:,3],axis=0)
-               
+                
     def binary_search(A,T): #Definition of the function performing a binary search
         L=0                #This function returns the leftmost item of the list ov events
         R=np.shape(k_m)[0]-1
@@ -93,13 +96,15 @@ while x<100000: #Stop the Kinetic Monte Carlo algorithm after a definite time.
     
     event=binary_search(k_m,max_list*np.random.uniform(0,1,1)) #Applying the binary search in the dynamic array k_m, passing a random number
        
-    if event[1]==2:#Once we have the rigth state to advance we perform the actual change in the number of cells in each level
+    if (event[1]==2) and (event[0]!=n):#Once we have the rigth state to advance we perform the actual change in the number of cells in each level
         c[event[0].astype(int),0]=c[event[0].astype(int),0]+2 #The rate number 2 is the symmetric differentiation
         c[event[0].astype(int)-1,0]=c[event[0].astype(int)-1,0]-1
     elif event[1]==1:
         c[event[0].astype(int)-1,0]=c[event[0].astype(int)-1,0]+1 #The rate number 1 is the symmetric cell division
     elif event[1]==3:
         c[event[0].astype(int)-1,0]=c[event[0].astype(int)-1,0]-1 #The rate number 3 is cell death
+    elif event[1]==2 and event[0]==n:
+        c[n-1,0]=c[n-1,0]-1
     else:
         print('Error event not found in list') #Error message for non defined rate of division
         
