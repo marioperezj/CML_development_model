@@ -5,6 +5,8 @@ import numpy as np
 import math as math
 import os
 import time
+np.set_printoptions(precision=5)
+np.set_printoptions(suppress=True)
 #Initializing the time to track the performance time of the code
 start_time = time.time()
 #Trying to remove the file out if it exists, otherwise pass an exception. The file out.tx will storage the output of the simulations
@@ -21,49 +23,47 @@ cou=0 #This variable will be a counter of how many iteratios are in the simulati
 l=0 # This is a loop that allow us to run the same simulation many times to get the necessary statistics
 #while l<1: #loop that creates many instances of the iteration
 #    l=l+1 #updating the index of the loop
-gamma=4
-n=3  #NUmber of levels in the hierarchy
-events=6 #Number of different events happening in the hierarchy for instance symetric cell division, death, mutation,etc.
+gamma=2.5
+n=10  #NUmber of levels in the hierarchy
+events=7 #Number of different events happening in the hierarchy for instance symetric cell division, death, mutation,etc.
 t=np.zeros((n*events,3)) #Initializing the static array that will storage the levels and distinct rates of each one
 
 for i in np.arange(n): #This procedure creates the array in first column is the number of level
     for k in np.arange(1,events+1): #In the second column it will be the number of rate for each level
         t[events*i+k-1:events*i+k,1]=k #The third column is the value of each one of the rates
         t[events*i+k-1:events*i+k,0]=i+1
-        
+
 c=np.zeros((n,2)) #Initializing the array that storage that will storage the number of cells in each level
-c[0,0]=10000 #Also initiaties the number of cells in each level, also the total differentiation rate per level
-c[1,0]=1000
-c[2,0]=0
+n_stem_cell=10
+c[0,0]=n_stem_cell #Also initiaties the number of cells in each level, also the total differentiation rate per level
 
-#for i in np.arange(1,n):
-#    c[i,0]=0
+for i in np.arange(1,n):
+    c[i,0]=0
 
-t[3,2]=1.0 #initializing the different rates for each one of the levels in the hierarchy
+t[4,2]=1.0 #initializing the different rates for each one of the levels in the hierarchy
 t[n*events-3,2]=1
 t[n*events-2,2]=1
 t[n*events-1,2]=2.0
 t[(n-1)*events-1,2]=1.0
-
 for i in np.arange(2,n):
     t[((n-i)*events)-1,2]=t[(n-(i-1))*events-1,2]/gamma
     
-for i in np.arange(2,n):
-    t[(i)*events-3,2]=1.0
-    
 for i in np.arange(1,n-1):
-    t[(i)*events+4,2]=(2*t[(i-1)*events+5,2])/(t[(i)*events+5,2]*t[(i)*events+3,2])
+    t[(i)*events+4,2]=0.8
+ 
+for i in np.arange(1,n-1):
+    t[(i)*events+5,2]=(2*t[(i-1)*events+6,2])/(t[(i)*events+6,2]*t[(i)*events+4,2])
 #    t[(i+1)*events-3,2]=(2)*(t[(i)*events-1,2]/t[(i+1)*events-1,2])/t[(i)*events-2,2]
-    
+  
 for i in np.arange(0,n):
-    t[i*events+1,2]=0.5*t[(i)*events+5,2]*t[i*events+3,2]
-    t[i*events,2]=0.5*t[(i)*events+5,2]*t[i*events+3,2]*(1-t[(i)*events+4,2])
+    t[i*events+1,2]=0.5*t[(i)*events+6,2]*t[i*events+4,2]
+    t[i*events,2]=0.5*t[(i)*events+6,2]*t[i*events+4,2]*(1-t[(i)*events+5,2])
+    t[i*events+3,2]=0.5*t[(i)*events+6,2]*(1-t[i*events+4,2])
     
 x=1. #Initializing the index for the Monte Carlo algorithm.
 mean=c[:,0].reshape(1,n)
 delta_t=0
-print(t[(t[:,1]==1)|(t[:,1]==2)|(t[:,1]==4)|(t[:,1]==5)])
-while x<100000: #Stop the Kinetic Monte Carlo algorithm after a definite time. 
+while x<200000: #Stop the Kinetic Monte Carlo algorithm after a definite time. 
     pri_array=np.append(np.array([x]).reshape(1,1),c[:,0].reshape(1,n),axis=1)
     mean_final=np.append(np.array([x]).reshape(1,1),mean,axis=1)
     
@@ -91,7 +91,7 @@ while x<100000: #Stop the Kinetic Monte Carlo algorithm after a definite time.
             k_m[events*i+k-1:events*i+k,2]=c[i,1]*t[events*i+k-1:events*i+k,2]#The third column is the value of each one of the rates
     
     k_m=k_m[k_m[:,2]!=0] #Choosing only non zero transition rate for different states    
-    k_m=k_m[(k_m[:,1]==1)|(k_m[:,1]==2)]
+    k_m=k_m[(k_m[:,1]==1)|(k_m[:,1]==2)|(k_m[:,1]==4)]
             
     cum_sum=np.cumsum(k_m[:,2],axis=0).reshape(np.shape(k_m)[0],1)
        
@@ -118,18 +118,28 @@ while x<100000: #Stop the Kinetic Monte Carlo algorithm after a definite time.
     event=binary_search(k_m,step_state) #Applying the binary search in the dynamic array k_m, passing a random number
     
 #    print(event)
-       
-    if (event[1]==2) and (event[0]!=n):#Once we have the rigth state to advance we perform the actual change in the number of cells in each level
-        c[event[0].astype(int),0]=c[event[0].astype(int),0]+2 #The rate number 2 is the symmetric differentiation
-        c[event[0].astype(int)-1,0]=c[event[0].astype(int)-1,0]-1
-    elif event[1]==1:
-        c[event[0].astype(int)-1,0]=c[event[0].astype(int)-1,0]+1 #The rate number 1 is the symmetric cell division
-    elif event[1]==3:
-        c[event[0].astype(int)-1,0]=c[event[0].astype(int)-1,0]-1 #The rate number 3 is cell death
-    elif event[1]==2 and event[0]==n:
-        c[n-1,0]=c[n-1,0]-1
+    if (event[0]==1):
+        if c[0,0]>=n_stem_cell:
+            c[0,0]=c[0,0]-1
+            c[1,0]=c[1,0]+2
+        else:
+            c[0,0]=c[0,0]+1
     else:
-        print('Error event not found in list') #Error message for non defined rate of division
+        if (event[1]==2) and (event[0]!=n):#Once we have the rigth state to advance we perform the actual change in the number of cells in each level
+            c[event[0].astype(int),0]=c[event[0].astype(int),0]+2 #The rate number 2 is the symmetric differentiation
+            c[event[0].astype(int)-1,0]=c[event[0].astype(int)-1,0]-1
+        elif event[1]==1:
+            c[event[0].astype(int)-1,0]=c[event[0].astype(int)-1,0]+1 #The rate number 1 is the symmetric cell division
+        elif event[1]==3:
+            c[event[0].astype(int)-1,0]=c[event[0].astype(int)-1,0]-1 #The rate number 3 is cell death
+        elif event[1]==2 and event[0]==n:
+            c[n-1,0]=c[n-1,0]-1
+        elif event[1]==4:
+            c[event[0].astype(int),0]=c[event[0].astype(int),0]+1
+        elif event[1]==4 and event[0]==n:
+            c[n-1,0]=c[n-1,0]-1
+        else:
+            print('Error event not found in list') #Error message for non defined rate of division
         
     ran=np.random.uniform(0,1,1) #Generating a new random number for updating the time in the KMC algorithm
     delta_t=np.log(1/ran)/max_list
