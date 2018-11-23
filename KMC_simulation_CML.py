@@ -24,8 +24,9 @@ l=0 # This is a loop that allow us to run the same simulation many times to get 
 #while l<1: #loop that creates many instances of the iteration
 #    l=l+1 #updating the index of the loop
 gamma=2.5
-n=10  #NUmber of levels in the hierarchy
+n=5  #NUmber of levels in the hierarchy
 events=7 #Number of different events happening in the hierarchy for instance symetric cell division, death, mutation,etc.
+p_values=0.9
 t=np.zeros((n*events,3)) #Initializing the static array that will storage the levels and distinct rates of each one
 
 for i in np.arange(n): #This procedure creates the array in first column is the number of level
@@ -37,8 +38,13 @@ c=np.zeros((n,2)) #Initializing the array that storage that will storage the num
 n_stem_cell=10
 c[0,0]=n_stem_cell #Also initiaties the number of cells in each level, also the total differentiation rate per level
 
-for i in np.arange(1,n):
-    c[i,0]=0
+#for i in np.arange(1,n):
+#    c[i,0]=0
+
+c[1,0]=10
+c[2,0]=750
+c[3,0]=8000
+c[4,0]=80000
 
 t[4,2]=1.0 #initializing the different rates for each one of the levels in the hierarchy
 t[n*events-3,2]=1
@@ -49,21 +55,22 @@ for i in np.arange(2,n):
     t[((n-i)*events)-1,2]=t[(n-(i-1))*events-1,2]/gamma
     
 for i in np.arange(1,n-1):
-    t[(i)*events+4,2]=0.8
+    t[(i)*events+4,2]=p_values
  
 for i in np.arange(1,n-1):
     t[(i)*events+5,2]=(2*t[(i-1)*events+6,2])/(t[(i)*events+6,2]*t[(i)*events+4,2])
 #    t[(i+1)*events-3,2]=(2)*(t[(i)*events-1,2]/t[(i+1)*events-1,2])/t[(i)*events-2,2]
   
 for i in np.arange(0,n):
-    t[i*events+1,2]=0.5*t[(i)*events+6,2]*t[i*events+4,2]
-    t[i*events,2]=0.5*t[(i)*events+6,2]*t[i*events+4,2]*(1-t[(i)*events+5,2])
-    t[i*events+3,2]=0.5*t[(i)*events+6,2]*(1-t[i*events+4,2])
+    t[i*events+1,2]=0.5*t[(i)*events+6,2]*t[i*events+4,2]/(10**(i+1))
+    t[i*events,2]=0.5*t[(i)*events+6,2]*t[i*events+4,2]*(1-t[(i)*events+5,2])/(10**(i+1))
+    t[i*events+3,2]=0.5*t[(i)*events+6,2]*(1-t[i*events+4,2])/(10**(i+1))
     
 x=1. #Initializing the index for the Monte Carlo algorithm.
 mean=c[:,0].reshape(1,n)
 delta_t=0
-while x<200000: #Stop the Kinetic Monte Carlo algorithm after a definite time. 
+#print(t[(t[:,1]==1)|(t[:,1]==2)|(t[:,1]==4)])
+while x<100000: #Stop the Kinetic Monte Carlo algorithm after a definite time. 
     pri_array=np.append(np.array([x]).reshape(1,1),c[:,0].reshape(1,n),axis=1)
     mean_final=np.append(np.array([x]).reshape(1,1),mean,axis=1)
     
@@ -88,10 +95,12 @@ while x<200000: #Stop the Kinetic Monte Carlo algorithm after a definite time.
          
     for i in np.arange(n):#This procedure creates the array in first column is the number of level THIS IS FOR THE DYNAMIC ARRAY 
         for k in np.arange(1,events+1): #In the second column it will be the number of rate for each level CHANGING IN EACH ITERATION
-            k_m[events*i+k-1:events*i+k,2]=c[i,1]*t[events*i+k-1:events*i+k,2]#The third column is the value of each one of the rates
-    
+            k_m[events*i+k-1:events*i+k,2]=c[i,0]*t[events*i+k-1:events*i+k,2]#The third column is the value of each one of the rates
+
     k_m=k_m[k_m[:,2]!=0] #Choosing only non zero transition rate for different states    
     k_m=k_m[(k_m[:,1]==1)|(k_m[:,1]==2)|(k_m[:,1]==4)]
+#
+#    print(k_m)
             
     cum_sum=np.cumsum(k_m[:,2],axis=0).reshape(np.shape(k_m)[0],1)
        
@@ -116,7 +125,7 @@ while x<200000: #Stop the Kinetic Monte Carlo algorithm after a definite time.
 #    print(step_state)
 #    print(max_list)
     event=binary_search(k_m,step_state) #Applying the binary search in the dynamic array k_m, passing a random number
-    
+#    print(step_state)
 #    print(event)
     if (event[0]==1):
         if c[0,0]>=n_stem_cell:
