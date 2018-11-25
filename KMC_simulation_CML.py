@@ -27,6 +27,7 @@ gamma=2.5
 n=5  #NUmber of levels in the hierarchy
 events=7 #Number of different events happening in the hierarchy for instance symetric cell division, death, mutation,etc.
 p_values=0.9
+time_sim=10000
 t=np.zeros((n*events,3)) #Initializing the static array that will storage the levels and distinct rates of each one
 
 for i in np.arange(n): #This procedure creates the array in first column is the number of level
@@ -38,13 +39,8 @@ c=np.zeros((n,2)) #Initializing the array that storage that will storage the num
 n_stem_cell=10
 c[0,0]=n_stem_cell #Also initiaties the number of cells in each level, also the total differentiation rate per level
 
-#for i in np.arange(1,n):
-#    c[i,0]=0
-
-c[1,0]=10
-c[2,0]=750
-c[3,0]=8000
-c[4,0]=80000
+for i in np.arange(1,n):
+    c[i,0]=0
 
 t[4,2]=1.0 #initializing the different rates for each one of the levels in the hierarchy
 t[n*events-3,2]=1
@@ -60,24 +56,32 @@ for i in np.arange(1,n-1):
 for i in np.arange(1,n-1):
     t[(i)*events+5,2]=(2*t[(i-1)*events+6,2])/(t[(i)*events+6,2]*t[(i)*events+4,2])
 #    t[(i+1)*events-3,2]=(2)*(t[(i)*events-1,2]/t[(i+1)*events-1,2])/t[(i)*events-2,2]
-  
+    
 for i in np.arange(0,n):
-    t[i*events+1,2]=0.5*t[(i)*events+6,2]*t[i*events+4,2]/(10**(i+1))
-    t[i*events,2]=0.5*t[(i)*events+6,2]*t[i*events+4,2]*(1-t[(i)*events+5,2])/(10**(i+1))
-    t[i*events+3,2]=0.5*t[(i)*events+6,2]*(1-t[i*events+4,2])/(10**(i+1))
+    t[i*events+1,2]=0.5*t[(i)*events+6,2]*t[i*events+4,2]
+    t[i*events,2]=0.5*t[(i)*events+6,2]*t[i*events+4,2]*(1-t[(i)*events+5,2])
+    t[i*events+3,2]=0.5*t[(i)*events+6,2]*(1-t[i*events+4,2])
+  
+#for i in np.arange(1,n):
+#    t[i*events+1,2]=0.5*t[(i)*events+6,2]*t[i*events+4,2]/500
+#    t[i*events,2]=0.5*t[(i)*events+6,2]*t[i*events+4,2]*(1-t[(i)*events+5,2])/500
+#    t[i*events+3,2]=0.5*t[(i)*events+6,2]*(1-t[i*events+4,2])/500
     
 x=1. #Initializing the index for the Monte Carlo algorithm.
 mean=c[:,0].reshape(1,n)
 delta_t=0
-#print(t[(t[:,1]==1)|(t[:,1]==2)|(t[:,1]==4)])
-while x<100000: #Stop the Kinetic Monte Carlo algorithm after a definite time. 
+print(t[(t[:,1]==1)|(t[:,1]==2)|(t[:,1]==4)])
+while x<time_sim: #Stop the Kinetic Monte Carlo algorithm after a definite time. 
     pri_array=np.append(np.array([x]).reshape(1,1),c[:,0].reshape(1,n),axis=1)
     mean_final=np.append(np.array([x]).reshape(1,1),mean,axis=1)
     
-    with open('out.txt', 'a') as f: #Open the file to save the results
-        np.savetxt(f,pri_array.reshape(1,n+1),fmt='%5.10f') #Saving the results as a table with 17 postions and numbers as integers
-    with open('mean.txt','a') as g:
-        np.savetxt(g,mean_final,fmt='%5.10f')
+    if cou%100==0:   
+        with open('out.txt', 'a') as f: #Open the file to save the results
+            np.savetxt(f,pri_array.reshape(1,n+1),fmt='%5.10f') #Saving the results as a table with 17 postions and numbers as integers
+        with open('mean.txt','a') as g:
+            np.savetxt(g,mean_final,fmt='%5.10f')
+    else:
+        1
     
     if np.amax(c)==0: #Computing the sum of the total number of cells WRONG!!!
         break
@@ -132,7 +136,7 @@ while x<100000: #Stop the Kinetic Monte Carlo algorithm after a definite time.
             c[0,0]=c[0,0]-1
             c[1,0]=c[1,0]+2
         else:
-            c[0,0]=c[0,0]+1
+            c[0,0]=c[0,0]+2
     else:
         if (event[1]==2) and (event[0]!=n):#Once we have the rigth state to advance we perform the actual change in the number of cells in each level
             c[event[0].astype(int),0]=c[event[0].astype(int),0]+2 #The rate number 2 is the symmetric differentiation
