@@ -27,7 +27,7 @@ gamma=2.5
 n=5  #NUmber of levels in the hierarchy
 events=7 #Number of different events happening in the hierarchy for instance symetric cell division, death, mutation,etc.
 p_values=0.9
-time_sim=10000
+time_sim=1000000
 t=np.zeros((n*events,3)) #Initializing the static array that will storage the levels and distinct rates of each one
 
 for i in np.arange(n): #This procedure creates the array in first column is the number of level
