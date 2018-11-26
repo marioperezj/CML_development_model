@@ -3,31 +3,40 @@
 #for the use of files to write on it, time is done to keep track of the performance
 import numpy as np
 import math as math
-import os
 import time
+import argparse
+import datetime
+now = datetime.datetime.now()
+id_file=now.strftime("%Y-%m-%d_%H:%M")
+file_name='raw_'+id_file
+name_mean='mean_'+id_file
+parser = argparse.ArgumentParser()
+parser.add_argument("-t", help="Time running simulation", type=int)
+parser.add_argument("-p", help="p vaue for all the levels", type=float)
+parser.add_argument("-gamma",help="Gamma values for the simulation",type=float)
+parser.add_argument("-n",help="Number of levels in the simualtion",type=int)
+args = parser.parse_args()
 np.set_printoptions(precision=5)
 np.set_printoptions(suppress=True)
 #Initializing the time to track the performance time of the code
 start_time = time.time()
+print(file_name)
 #Trying to remove the file out if it exists, otherwise pass an exception. The file out.tx will storage the output of the simulations
 #The output of the simulations will be at this moment just the total number of cells in each level.
-try:
-    os.remove('out.txt')
-except OSError:
-    pass
-try:
-    os.remove('mean.txt')
-except OSError:
-    pass
 cou=0 #This variable will be a counter of how many iteratios are in the simulation.
 l=0 # This is a loop that allow us to run the same simulation many times to get the necessary statistics
 #while l<1: #loop that creates many instances of the iteration
 #    l=l+1 #updating the index of the loop
-gamma=2.5
-n=5  #NUmber of levels in the hierarchy
+gamma=args.gamma
+n=args.n  #NUmber of levels in the hierarchy
 events=7 #Number of different events happening in the hierarchy for instance symetric cell division, death, mutation,etc.
+<<<<<<< HEAD
+p_values=args.p
+time_sim=args.t
+=======
 p_values=0.9
 time_sim=1000000
+>>>>>>> 5d5b08cb34284babdffff983a6370e17815d2aed
 t=np.zeros((n*events,3)) #Initializing the static array that will storage the levels and distinct rates of each one
 
 for i in np.arange(n): #This procedure creates the array in first column is the number of level
@@ -57,15 +66,15 @@ for i in np.arange(1,n-1):
     t[(i)*events+5,2]=(2*t[(i-1)*events+6,2])/(t[(i)*events+6,2]*t[(i)*events+4,2])
 #    t[(i+1)*events-3,2]=(2)*(t[(i)*events-1,2]/t[(i+1)*events-1,2])/t[(i)*events-2,2]
     
-for i in np.arange(0,n):
-    t[i*events+1,2]=0.5*t[(i)*events+6,2]*t[i*events+4,2]
-    t[i*events,2]=0.5*t[(i)*events+6,2]*t[i*events+4,2]*(1-t[(i)*events+5,2])
-    t[i*events+3,2]=0.5*t[(i)*events+6,2]*(1-t[i*events+4,2])
+#for i in np.arange(0,n):
+#    t[i*events+1,2]=0.5*t[(i)*events+6,2]*t[i*events+4,2]
+#    t[i*events,2]=0.5*t[(i)*events+6,2]*t[i*events+4,2]*(1-t[(i)*events+5,2])
+#    t[i*events+3,2]=0.5*t[(i)*events+6,2]*(1-t[i*events+4,2])
   
-#for i in np.arange(1,n):
-#    t[i*events+1,2]=0.5*t[(i)*events+6,2]*t[i*events+4,2]/500
-#    t[i*events,2]=0.5*t[(i)*events+6,2]*t[i*events+4,2]*(1-t[(i)*events+5,2])/500
-#    t[i*events+3,2]=0.5*t[(i)*events+6,2]*(1-t[i*events+4,2])/500
+for i in np.arange(0,n):
+    t[i*events+1,2]=0.5*t[(i)*events+6,2]*t[i*events+4,2]/10**i
+    t[i*events,2]=0.5*t[(i)*events+6,2]*t[i*events+4,2]*(1-t[(i)*events+5,2])/10**i
+    t[i*events+3,2]=0.5*t[(i)*events+6,2]*(1-t[i*events+4,2])/10**i
     
 x=1. #Initializing the index for the Monte Carlo algorithm.
 mean=c[:,0].reshape(1,n)
@@ -76,9 +85,9 @@ while x<time_sim: #Stop the Kinetic Monte Carlo algorithm after a definite time.
     mean_final=np.append(np.array([x]).reshape(1,1),mean,axis=1)
     
     if cou%100==0:   
-        with open('out.txt', 'a') as f: #Open the file to save the results
+        with open(file_name, 'a') as f: #Open the file to save the results
             np.savetxt(f,pri_array.reshape(1,n+1),fmt='%5.10f') #Saving the results as a table with 17 postions and numbers as integers
-        with open('mean.txt','a') as g:
+        with open(name_mean,'a') as g:
             np.savetxt(g,mean_final,fmt='%5.10f')
     else:
         1
