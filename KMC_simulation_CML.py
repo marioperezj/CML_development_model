@@ -30,13 +30,10 @@ l=0 # This is a loop that allow us to run the same simulation many times to get 
 gamma=args.gamma
 n=args.n  #NUmber of levels in the hierarchy
 events=7 #Number of different events happening in the hierarchy for instance symetric cell division, death, mutation,etc.
-<<<<<<< HEAD
 p_values=args.p
 time_sim=args.t
-=======
 p_values=0.9
 time_sim=1000000
->>>>>>> 5d5b08cb34284babdffff983a6370e17815d2aed
 t=np.zeros((n*events,3)) #Initializing the static array that will storage the levels and distinct rates of each one
 
 for i in np.arange(n): #This procedure creates the array in first column is the number of level
