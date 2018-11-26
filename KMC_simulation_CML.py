@@ -6,10 +6,10 @@ import math as math
 import time
 import argparse
 import datetime
+import os
 now = datetime.datetime.now()
-id_file=now.strftime("%Y-%m-%d_%H:%M")
-file_name='raw_'+id_file
-name_mean='mean_'+id_file
+id_file=now.strftime("%Y-%m-%d")
+id_minutes=now.strftime("%H:%M")
 parser = argparse.ArgumentParser()
 parser.add_argument("-t", help="Time running simulation", type=int)
 parser.add_argument("-p", help="p vaue for all the levels", type=float)
@@ -20,7 +20,6 @@ np.set_printoptions(precision=5)
 np.set_printoptions(suppress=True)
 #Initializing the time to track the performance time of the code
 start_time = time.time()
-print(file_name)
 #Trying to remove the file out if it exists, otherwise pass an exception. The file out.tx will storage the output of the simulations
 #The output of the simulations will be at this moment just the total number of cells in each level.
 cou=0 #This variable will be a counter of how many iteratios are in the simulation.
@@ -32,6 +31,12 @@ n=args.n  #NUmber of levels in the hierarchy
 events=7 #Number of different events happening in the hierarchy for instance symetric cell division, death, mutation,etc.
 p_values=args.p
 time_sim=args.t
+id_dir='sim_dell/'+id_file
+file_name=id_dir+'/raw_'+id_minutes+'_'+str(gamma)+'_'+str(n)+'_'+str(p_values)+'.txt'
+name_mean=id_dir+'/mean_'+id_minutes+'_'+str(gamma)+'_'+str(n)+'_'+str(p_values)+'.txt'
+id_dir='sim_dell/'+id_file
+if not os.path.exists(id_dir):
+    os.makedirs(id_dir)
 t=np.zeros((n*events,3)) #Initializing the static array that will storage the levels and distinct rates of each one
 
 for i in np.arange(n): #This procedure creates the array in first column is the number of level
