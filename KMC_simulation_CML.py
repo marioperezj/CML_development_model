@@ -9,7 +9,7 @@ import datetime
 import os
 now = datetime.datetime.now()
 id_file=now.strftime("%Y-%m-%d")
-id_minutes=now.strftime("%H:%M")
+#id_minutes=now.strftime("%H:%M")
 parser = argparse.ArgumentParser()
 parser.add_argument("-t", help="Time running simulation", type=int)
 parser.add_argument("-p", help="p vaue for all the levels", type=float)
@@ -32,11 +32,20 @@ events=7 #Number of different events happening in the hierarchy for instance sym
 p_values=args.p
 time_sim=args.t
 id_dir='sim_dell/'+id_file
+id_minutes='1'
 file_name=id_dir+'/raw_'+id_minutes+'_'+str(gamma)+'_'+str(n)+'_'+str(p_values)+'.txt'
 name_mean=id_dir+'/mean_'+id_minutes+'_'+str(gamma)+'_'+str(n)+'_'+str(p_values)+'.txt'
 id_dir='sim_dell/'+id_file
 if not os.path.exists(id_dir):
     os.makedirs(id_dir)
+try:
+    os.remove(file_name)
+except OSError:
+    pass
+try:
+    os.remove(name_mean)
+except OSError:
+    pass
 t=np.zeros((n*events,3)) #Initializing the static array that will storage the levels and distinct rates of each one
 
 for i in np.arange(n): #This procedure creates the array in first column is the number of level
@@ -45,7 +54,7 @@ for i in np.arange(n): #This procedure creates the array in first column is the 
         t[events*i+k-1:events*i+k,0]=i+1
 
 c=np.zeros((n,2)) #Initializing the array that storage that will storage the number of cells in each level
-n_stem_cell=10
+n_stem_cell=3
 c[0,0]=n_stem_cell #Also initiaties the number of cells in each level, also the total differentiation rate per level
 
 for i in np.arange(1,n):
@@ -66,24 +75,24 @@ for i in np.arange(1,n-1):
     t[(i)*events+5,2]=(2*t[(i-1)*events+6,2])/(t[(i)*events+6,2]*t[(i)*events+4,2])
 #    t[(i+1)*events-3,2]=(2)*(t[(i)*events-1,2]/t[(i+1)*events-1,2])/t[(i)*events-2,2]
     
-#for i in np.arange(0,n):
-#    t[i*events+1,2]=0.5*t[(i)*events+6,2]*t[i*events+4,2]
-#    t[i*events,2]=0.5*t[(i)*events+6,2]*t[i*events+4,2]*(1-t[(i)*events+5,2])
-#    t[i*events+3,2]=0.5*t[(i)*events+6,2]*(1-t[i*events+4,2])
-  
-for i in np.arange(0,n):
-    t[i*events+1,2]=0.5*t[(i)*events+6,2]*t[i*events+4,2]/10**i
-    t[i*events,2]=0.5*t[(i)*events+6,2]*t[i*events+4,2]*(1-t[(i)*events+5,2])/10**i
-    t[i*events+3,2]=0.5*t[(i)*events+6,2]*(1-t[i*events+4,2])/10**i
-    
+for i in np.arange(0,1):
+    t[i*events+1,2]=0.5*t[(i)*events+6,2]*t[i*events+4,2]/3
+    t[i*events,2]=0.5*t[(i)*events+6,2]*t[i*events+4,2]*(1-t[(i)*events+5,2])/3
+    t[i*events+3,2]=0.5*t[(i)*events+6,2]*(1-t[i*events+4,2])/3
+      
+for i in np.arange(1,n):
+    t[i*events+1,2]=0.5*t[(i)*events+6,2]*t[i*events+4,2]/2**(i+3)
+    t[i*events,2]=0.5*t[(i)*events+6,2]*t[i*events+4,2]*(1-t[(i)*events+5,2])/2**(i+3)
+    t[i*events+3,2]=0.5*t[(i)*events+6,2]*(1-t[i*events+4,2])/2**(i+3)    
+
 x=1. #Initializing the index for the Monte Carlo algorithm.
 mean=c[:,0].reshape(1,n)
 delta_t=0
-print(t[(t[:,1]==1)|(t[:,1]==2)|(t[:,1]==4)])
+print(t)
 while x<time_sim: #Stop the Kinetic Monte Carlo algorithm after a definite time. 
     pri_array=np.append(np.array([x]).reshape(1,1),c[:,0].reshape(1,n),axis=1)
     mean_final=np.append(np.array([x]).reshape(1,1),mean,axis=1)
-    
+#    print(c)
     if cou%100==0:   
         with open(file_name, 'a') as f: #Open the file to save the results
             np.savetxt(f,pri_array.reshape(1,n+1),fmt='%5.10f') #Saving the results as a table with 17 postions and numbers as integers
@@ -109,11 +118,11 @@ while x<time_sim: #Stop the Kinetic Monte Carlo algorithm after a definite time.
     for i in np.arange(n):#This procedure creates the array in first column is the number of level THIS IS FOR THE DYNAMIC ARRAY 
         for k in np.arange(1,events+1): #In the second column it will be the number of rate for each level CHANGING IN EACH ITERATION
             k_m[events*i+k-1:events*i+k,2]=c[i,0]*t[events*i+k-1:events*i+k,2]#The third column is the value of each one of the rates
+            
+#    print(k_m)
 
     k_m=k_m[k_m[:,2]!=0] #Choosing only non zero transition rate for different states    
     k_m=k_m[(k_m[:,1]==1)|(k_m[:,1]==2)|(k_m[:,1]==4)]
-#
-#    print(k_m)
             
     cum_sum=np.cumsum(k_m[:,2],axis=0).reshape(np.shape(k_m)[0],1)
        
@@ -167,7 +176,7 @@ while x<time_sim: #Stop the Kinetic Monte Carlo algorithm after a definite time.
     delta_t=np.log(1/ran)/max_list
     mean=(np.add(delta_t*c[:,0].reshape(1,n),x*mean))/(x+delta_t)
     x=x+delta_t #Computing the udpate in time
-
+print(k_m)
 print(cou) #Print in the terminal the total number of iterations in the simulation
 print("--- %s seconds ---" % (time.time() - start_time)) #Print the total time of the simulation
 #print(c)
