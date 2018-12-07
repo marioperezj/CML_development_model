@@ -19,7 +19,7 @@ number_levels=args.n
 rate_number=3 #Number of available events in the simulation, in this version it contains scd, scdif and adif
 gamma=args.gamma
 p=args.p
-p_stem_cell=0.
+p_stem_cell=0.5
 sim_time=args.t
 counter=0 #counter of the steps in the KMC
 id_file=args.idfile+'.txt' #id file to print the output
@@ -31,8 +31,9 @@ except OSError:
 #The columns are delta,p,q,rscd, rscdif, acdif
 rates_matrix=np.zeros((number_levels,rate_number+3)) 
 #Creating the arrays that will storage the dynamic number of cells and the defined number of cells
-c_set=np.array([10,20,30,40,50])
-c=np.array([10,20,30,40,50])
+c_set=np.array([10,200,300,400,500])
+c=np.array([10,0,0,0,0]) #Starting with only the stem cell pool
+#c=np.copy(c_set) #Uncomment this line to start with an already build up system.
 #Function that creates the matrix with the rates to be considered in the KMC simulation
 #The function returns two items, the first one is the matrix with the rates, the second is a flag to assure that p and q are fixed properly
 #The flag is zero if p and q are correct, different of zero otherwise
@@ -104,6 +105,32 @@ def perform_event(event_to_perform_par,level_to_perform_par,number_levels_par):
         c[level_to_perform_par+1]=c[level_to_perform_par+1]+1
     else:
         print('Event not found') #Perform warning message in case of undefined event
+#function with a stabilization method for the stem cell pool, leading to less fluctuating results.
+def perform_event_stabilize(event_to_perform_par,level_to_perform_par,number_levels_par):
+    global c
+    ran_num=np.random.uniform(0,1,1)
+    if event_to_perform_par==0 and level_to_perform_par!=0:#perform scd
+        c[level_to_perform_par]=c[level_to_perform_par]+1
+    elif event_to_perform_par==1 and level_to_perform_par!=number_levels_par-1 and level_to_perform_par!=0:#perform scdif in a progenitor level
+        c[level_to_perform_par]=c[level_to_perform_par]-1
+        c[level_to_perform_par+1]=c[level_to_perform_par+1]+2
+    elif event_to_perform_par==1 and level_to_perform_par==number_levels_par-1:#perform scdif in the TDF level
+        c[number_levels_par-1]=c[number_levels_par-1]-1
+    elif event_to_perform_par==2 and level_to_perform_par!=0: #Perform acdif 
+        c[level_to_perform_par+1]=c[level_to_perform_par+1]+1
+    elif level_to_perform_par==0 and c[0]>c_set[0]:
+        c[0]=c[0]-1
+        c[1]=c[1]+2
+    elif level_to_perform_par==0 and c[0]<c_set[0]:
+        c[0]=c[0]+1
+    elif level_to_perform_par==0 and c[0]==c_set[0]:
+        if ran_num<0.5:
+            c[0]=c[0]-1
+            c[1]=c[1]+2
+        else:
+            c[0]=c[0]+1
+    else:
+        print('Event not found') #Perform warning message in case of undefined event
 #Function that performs one step of the KMC it receives as arguments c, and initial state the number of levels and time
 #The function update the global variable c using perform_event and the time also choose one of the events using the proper algorithm
 def kinetic_montecarlo_step(c_par,initial_rates_par,number_levels_par,t_par):
@@ -116,7 +143,7 @@ def kinetic_montecarlo_step(c_par,initial_rates_par,number_levels_par,t_par):
     binary_result=np.searchsorted(final_rates,u*max_rate) #Performing binary search of the correct event
     level_to_perform=rates_indices[0][binary_result] #Getting the desired level to affect
     event_to_perform=rates_indices[1][binary_result] #Getting the rigth event to perform
-    perform_event(event_to_perform,level_to_perform,number_levels_par) #Performing the event
+    perform_event_stabilize(event_to_perform,level_to_perform,number_levels_par) #Performing the event
     u_new=np.random.uniform(0,1,1)
     delta_t=np.log(1/u_new)/max_rate #get delta_t
     data=np.concatenate((t_par,delta_t,c,level_to_perform,event_to_perform),axis=0).reshape(1,number_levels_par+4) #CReating the proper array to print
@@ -126,7 +153,7 @@ def kinetic_montecarlo_step(c_par,initial_rates_par,number_levels_par,t_par):
     t=t_par+delta_t #Update the global varibale t
 
 initial_rates,sanity_p_q=construct_rates(rates_matrix,number_levels,gamma,p,p_stem_cell,c_set) #Calling function contstruct rates
-t=np.array([0.]) #Initializing t
+t=np.array([1.]) #Initializing t
 if sanity_p_q!=0:#Creating sanity check otherwise stop simulation
     while t<sim_time: #Iterating many steps of the KMC
         kinetic_montecarlo_step(c,initial_rates,number_levels,t)
