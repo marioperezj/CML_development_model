@@ -12,7 +12,7 @@ parser.add_argument("-t", help="Time running simulation", type=int)
 parser.add_argument("-p", help="p vaue for all the levels", type=float)
 parser.add_argument("-gamma",help="Gamma values for the simulation",type=float)
 parser.add_argument("-n",help="Number of levels in the simualtion",type=int)
-parser.add_argument("-idfile",help="Name of the file or path to identift the file",type=str)
+parser.add_argument("-idfile",help="Name of the file or path to identift the file",type=str,default='out_file_kmc')
 args = parser.parse_args()
 start_time = time.time() #Measuring the initial time to test the performance of the simulation.
 number_levels=args.n
