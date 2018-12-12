@@ -1,4 +1,4 @@
-#This code was created by Mario Perez at ELTE University, it creates a Kinetic Monte Carlo simulation of a tissue. 
+#This code was created by Mario Perez at ELTE University, it creates a Kinetic Monte Carlo simulation of a tissue.
 #This tissue is based on the following article https://www.nature.com/articles/ncomms14545 when the parameters definitions can be found
 #The sumlation outputs a file with the following data in columns
 #Time /t delta_time /t Number of cells in each level /t Level to affect /t Event type to affect
@@ -35,8 +35,8 @@ except OSError:
 #The columns are delta,p,q,rscd, rscdif, acdif
 rates_matrix=np.zeros((number_levels,rate_number+3))
 #Creating the arrays that will storage the dynamic number of cells and the defined number of cells
-c_set=np.array([10,20,20,20,20])
-c=np.array([10,10,10,10,10]) #Starting with only the stem cell pool
+c_set=np.array([5,200,200,200,200])
+c=np.array([5,200,200,200,200]) #Starting with only the stem cell pool
 #c=np.copy(c_set) #Uncomment this line to start with an already build up system.
 #Function that creates the matrix with the rates to be considered in the KMC simulation
 #The function returns two items, the first one is the matrix with the rates, the second is a flag to assure that p and q are fixed properly
@@ -52,11 +52,11 @@ def construct_rates(rates_matrix_par,number_levels_par,gamma_par,p_par,p_stem_ce
         rates_matrix_par[number_levels_par-2,0]=1.0
         rates_matrix_par[number_levels_par-1,1]=1.0
         rates_matrix_par[number_levels_par-1,2]=1.0
-    #calculate gamma for all levels, starting from TDF level down to the stem cell level    
+    #calculate gamma for all levels, starting from TDF level down to the stem cell level
     def calculate_delta():
         for i in range(number_levels_par-3,-1,-1):
             rates_matrix_par[i,0]=rates_matrix_par[i+1,0]/gamma_par
-    #set p value for progenitors levels        
+    #set p value for progenitors levels
     def set_p_values():
         for i in range(1,number_levels_par-1,1):
             rates_matrix_par[i,1]=p_par
@@ -64,22 +64,22 @@ def construct_rates(rates_matrix_par,number_levels_par,gamma_par,p_par,p_stem_ce
     def set_q_values():
         for i in range(1,number_levels_par-1,1):
             rates_matrix_par[i,2]=2.0*(rates_matrix_par[i-1,0]/rates_matrix_par[i,0])/rates_matrix_par[i,1]
-    #Set the rate of csd accordingly to the model        
+    #Set the rate of csd accordingly to the model
     def set_rscd():
         for i in range(0,number_levels_par,1):
             rates_matrix_par[i,3]=0.5*rates_matrix_par[i,0]*(1-rates_matrix_par[i,2])*rates_matrix_par[i,1]
-    #Set the rate of csdif accordingly to the model              
+    #Set the rate of csdif accordingly to the model
     def set_rscdif():
         for i in range(0,number_levels_par,1):
             rates_matrix_par[i,4]=0.5*rates_matrix_par[i,0]*rates_matrix_par[i,1]
-    #Set the rate of acdif accordingly to the model              
+    #Set the rate of acdif accordingly to the model
     def set_radif():
         for i in range(0,number_levels_par,1):
             rates_matrix_par[i,5]=rates_matrix_par[i,0]*(1-rates_matrix_par[i,1])
     def set_rmut():
         for i in range(0,number_levels_par,1):
             rates_matrix_par[i,7]=mu
-    #performing all the cahnges                 
+    #performing all the cahnges
     set_initial_rates()
     set_p_value_stem_cell()
     calculate_delta()
@@ -109,7 +109,7 @@ def perform_event(event_to_perform_par,level_to_perform_par,number_levels_par):
         c[level_to_perform_par+1]=c[level_to_perform_par+1]+2
     elif event_to_perform_par==1 and level_to_perform_par==number_levels_par-1:#perform scdif in the TDF level
         c[number_levels_par-1]=c[number_levels_par-1]-1
-    elif event_to_perform_par==2: #Perform acdif 
+    elif event_to_perform_par==2: #Perform acdif
         c[level_to_perform_par+1]=c[level_to_perform_par+1]+1
     else:
         print('Event not found') #Perform warning message in case of undefined event
@@ -124,7 +124,7 @@ def perform_event_stabilize(event_to_perform_par,level_to_perform_par,number_lev
         c[level_to_perform_par+1]=c[level_to_perform_par+1]+2
     elif event_to_perform_par==1 and (level_to_perform_par%number_levels_par)==number_levels_par-1:#perform scdif in the TDF level
         c[number_levels_par-1]=c[number_levels_par-1]-1
-    elif event_to_perform_par==2 and (level_to_perform_par%number_levels_par)!=0: #Perform acdif 
+    elif event_to_perform_par==2 and (level_to_perform_par%number_levels_par)!=0: #Perform acdif
         c[level_to_perform_par+1]=c[level_to_perform_par+1]+1
     elif event_to_perform_par==4:
         create_new_mutated_levels(c,number_levels,level_to_perform_par)
@@ -143,10 +143,11 @@ def perform_event_stabilize(event_to_perform_par,level_to_perform_par,number_lev
         print('Event not found') #Perform warning message in case of undefined event
 #Function that performs one step of the KMC it receives as arguments c, and initial state the number of levels and time
 #The function update the global variable c using perform_event and the time also choose one of the events using the proper algorithm
-        
+
 def create_new_mutated_levels(c_par,number_levels_par,level_to_perform_par):
     global initial_rates
     global c
+    global c_set
     number_of_mutations=int(initial_rates.shape[0]/number_levels-1)
     new_levels=np.zeros((number_levels,rate_number))
     initial_rates=np.append(initial_rates,new_levels,axis=0)
@@ -155,9 +156,11 @@ def create_new_mutated_levels(c_par,number_levels_par,level_to_perform_par):
     else:
         initial_rates[number_levels_par*(number_of_mutations+1):,]=initial_rates[number_of_mutations*number_levels_par:number_levels_par*(number_of_mutations+1),:]
     c_new=np.zeros((number_levels))
+    c_set_new=np.copy(c_set)
     c=np.append(c,c_new,axis=0)
+    c_set=np.append(c_set,c_set_new,axis=0)
     c[number_levels_par*(number_of_mutations+1)]=1
-        
+
 def kinetic_montecarlo_step(c_par,initial_rates_par,number_levels_par,t_par):
 #    print(initial_rates_par)
 #    print(c_par)
@@ -179,8 +182,10 @@ def kinetic_montecarlo_step(c_par,initial_rates_par,number_levels_par,t_par):
     u_new=np.random.uniform(0,1,1)
     delta_t=np.log(1/u_new)/max_rate #get delta_t
     data=np.concatenate((t_par,delta_t,level_to_perform,event_to_perform,c),axis=0).reshape(1,c.shape[0]+4) #CReating the proper array to print
-    with open(id_file, 'a') as f:
-        np.savetxt(f,data,fmt='%5.10f')#Saving the array to the file
+    if counter%100==0.0:
+        with open(id_file, 'a') as f:
+            np.savetxt(f,data,fmt='%5.10f')#Saving the array to the file
+    else 1:
     global t
     t=t_par+delta_t #Update the global varibale t
 
