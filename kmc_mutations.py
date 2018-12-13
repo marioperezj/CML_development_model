@@ -35,8 +35,8 @@ except OSError:
 #The columns are delta,p,q,rscd, rscdif, acdif
 rates_matrix=np.zeros((number_levels,rate_number+3))
 #Creating the arrays that will storage the dynamic number of cells and the defined number of cells
-c_set=np.array([5,200,200,200,200])
-c=np.array([5,200,200,200,200]) #Starting with only the stem cell pool
+c_set=np.array([5,20,30,40,50])
+c=np.array([5,20,30,40,50]) #Starting with only the stem cell pool
 #c=np.copy(c_set) #Uncomment this line to start with an already build up system.
 #Function that creates the matrix with the rates to be considered in the KMC simulation
 #The function returns two items, the first one is the matrix with the rates, the second is a flag to assure that p and q are fixed properly
@@ -97,7 +97,7 @@ def construct_rates(rates_matrix_par,number_levels_par,gamma_par,p_par,p_stem_ce
     reduced_rates=rates_matrix_par[:,3:3+rate_number] #Creating the list of final reduced rates to use in the monte carlo iteration.
     #dividing by the number of cells per level, resulting in rates per cell
     for i in range(0,number_levels):
-        reduced_rates[i,:]=reduced_rates[i,:]/c_set_par[i]
+        reduced_rates[i,0:rate_number-1]=reduced_rates[i,0:rate_number-1]/c_set_par[i]
     return reduced_rates, sanity_p_q
 #function that perform the cellular event in the level, with the outcomes of the KMC step, this function updates the global array c
 def perform_event(event_to_perform_par,level_to_perform_par,number_levels_par):
@@ -159,13 +159,14 @@ def create_new_mutated_levels(c_par,number_levels_par,level_to_perform_par):
     c_set_new=np.copy(c_set)
     c=np.append(c,c_new,axis=0)
     c_set=np.append(c_set,c_set_new,axis=0)
-    c[number_levels_par*(number_of_mutations+1)]=1
+    print(number_levels_par*(number_of_mutations+1)+level_to_perform_par)
+    c[number_levels_par*(number_of_mutations+1)+level_to_perform_par]=1
 
 def kinetic_montecarlo_step(c_par,initial_rates_par,number_levels_par,t_par):
-#    print(initial_rates_par)
+    #print(initial_rates_par)
 #    print(c_par)
     initial_state=np.multiply(c_par.reshape(c_par.shape[0],1),initial_rates_par) #Modifiyng rates according to actual number
-#    print(initial_state)
+    #print(initial_state)
     rates_indices=np.where(initial_state>0.)#Selecting only non zero rates
     states_list=initial_state[rates_indices]# Getting the indices for the non zero states
 #    print(states_list)
@@ -182,10 +183,8 @@ def kinetic_montecarlo_step(c_par,initial_rates_par,number_levels_par,t_par):
     u_new=np.random.uniform(0,1,1)
     delta_t=np.log(1/u_new)/max_rate #get delta_t
     data=np.concatenate((t_par,delta_t,level_to_perform,event_to_perform,c),axis=0).reshape(1,c.shape[0]+4) #CReating the proper array to print
-    if counter%100==0.0:
-        with open(id_file, 'a') as f:
-            np.savetxt(f,data,fmt='%5.10f')#Saving the array to the file
-    else 1:
+    with open(id_file, 'a') as f:
+        np.savetxt(f,data,fmt='%5.10f')#Saving the array to the file
     global t
     t=t_par+delta_t #Update the global varibale t
 
