@@ -216,7 +216,7 @@ def simulation_step(number_levels_par):
                 perform_event_left(event_number_list[1][i],event_number_list[0][i],number_levels_par,num_mut_left[k],num_cells_left[k])
             for l in range(np.size(num_mut_right)):
                 perform_event_right(event_number_list[1][i],event_number_list[0][i],number_levels_par,num_mut_right[l],num_cells_right[l])            
-    data=np.concatenate((t,delta_t,c),axis=0).reshape(1,c.shape[0]+2)
+    data=np.concatenate((t,c[21:]),axis=0).reshape(1,c.shape[0]-20)
     with open(id_file, 'a') as f:
         np.savetxt(f,data,fmt='%5.10f')#Saving the array to the file
     t=t+delta_t
