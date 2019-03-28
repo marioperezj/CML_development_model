@@ -4,9 +4,9 @@ def readrow(row, cols):
     data = np.fromstring(row, sep=' ')
     data.resize((cols,))
     return data
-num_lev=24
+num_lev=23
 num_mut=5
-file='bm_space'
+file='bm_space_1_'
 with open(file+'.txt', 'rb') as f:
     data = np.array([readrow(row, (num_mut+1)*num_lev+1) for row in f])
 dict_leuke=np.empty((num_lev,),dtype=object)
@@ -23,8 +23,10 @@ for i in range(long):
 cell_type_percentage=np.zeros((long,num_lev))
 total_cells=np.zeros((long))
 for i in range(0,long):
+    sum_temp=0
     for k in range(0,num_lev):
-        total_cells[i]=total_leuke[k][i]+data[i,k+1]
+        sum_temp=sum_temp+total_leuke[k][i]+data[i,k+1]
+    total_cells[i]=sum_temp
 for i in range(0,long):
     for k in range(0,num_lev):
         cell_type_percentage[i,k]=(data[i,k+1]+total_leuke[k][i])/total_cells[i]
@@ -33,9 +35,9 @@ print(cell_type_percentage[long-1,:])
         
 def ratio_per_type(lev_initiate,lev_final):
     plt.figure(figsize=(16,8))
-#    plt.xlim(3.0,4.0)
-    plt.yscale('log')
-#    plt.ylim(1e-5,1e2)
+#    plt.xlim(0.8,1.6)
+#    plt.yscale('log')
+#    plt.ylim(0,10)
     plt.grid(True)
     for i in range(lev_initiate,lev_final):
         plt.scatter(data[:,0]/365.0,cell_type_percentage[:,i]*100,marker=',',s=1,label='level '+str(i%num_lev))
@@ -74,7 +76,7 @@ def graph_wt_cells(lev_initiate,lev_final):
 def graph_cml_cells(lev_initiate,lev_final,num_mutation):
     plt.figure(figsize=(16,8))
     plt.yscale('log')
-#    plt.xlim(3.4,3.7)
+#    plt.xlim(2.5,4.0)
 #    plt.ylim(1,1e13)
     for i in range(lev_initiate,lev_final):
         plt.scatter(data[:,0]/365.0,data[:,num_mutation*num_lev+i+1],marker=',',s=1.0,label='level bcr-abl'+str(i%num_lev))
@@ -85,6 +87,6 @@ def graph_cml_cells(lev_initiate,lev_final,num_mutation):
     plt.savefig(file+'graph_cml_cells.png')
     plt.close()
 
-graph_cml_cells(0,24,2)
-ratio_cml_per_level(0,24)
-ratio_per_type(18,22)
+graph_cml_cells(0,23,3)
+ratio_cml_per_level(0,23)
+ratio_per_type(17,23)
