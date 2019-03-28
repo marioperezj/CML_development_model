@@ -2,7 +2,7 @@ import numpy as np
 import os
 import time
 import argparse
-np.set_printoptions(precision=9)
+np.set_printoptions(precision=6)
 np.set_printoptions(suppress=True)
 #Import different parameters for the simulation from the command line
 parser = argparse.ArgumentParser()
@@ -10,22 +10,22 @@ parser.add_argument("-t", help="Time running simulation", type=float)
 parser.add_argument("-p", help="p vaue for all the levels", type=float)
 parser.add_argument("-gamma",help="Gamma values for the simulation",type=float)
 parser.add_argument("-n",help="Number of levels in the simualtion",type=int)
-parser.add_argument("-idfile",help="Name of the file or path to identift the file",type=str,default='bm_space')
+parser.add_argument("-idfile",help="Name of the file or path to identift the file",type=str,default='bm_space_1_')
 parser.add_argument("-mu",help="Mutation rate for the cells",type=float)
 args = parser.parse_args()
 start_time = time.time() #Measuring the initial time to test the performance of the simulation.
-number_levels=24
+number_levels=23
 rate_number=3 #Number of available events in the simulation, in this version it contains scd, scdif, adif and cell death
 final_output_events=int((10e9))
 gamma=2.0
 gamma_progenitor=3.0
 p=1
 p_prog=1
-p_stem_cell=1
-sim_time=1500
-mu=1e-8
+p_stem_cell=0.5
+sim_time=3650
+mu=1e-5
 counter=0 #counter of the steps in the KMC
-fitness_s=0.2 #fitness of the mutant cells
+fitness_s=0.06 #fitness of the mutant cells
 id_file=args.idfile+'.txt' #id file to print the output
 id_file_mutations=args.idfile='_mutations.txt'
 delta_t=np.zeros((1))
@@ -48,8 +48,8 @@ fitness_term=np.zeros(number_levels) #array that will store the fitness values f
 c=np.copy(c_set)
 #c=np.zeros((number_levels))
 c[0]=350
-mitotic_pool=16
-marrow_limits=17
+mitotic_pool=17
+marrow_limits=19
 #Uncomment this line to start with an already build up system.
 #Function that creates the matrix with the rates to be considered in the KMC simulation
 #The function returns two items, the first one is the matrix with the rates, the second is a flag to assure that p and q are fixed properly
@@ -76,9 +76,9 @@ def construct_rates(rates_matrix_par,number_levels_par,gamma_par,p_par,p_stem_ce
             rates_matrix_par[i,0]=rates_matrix_par[i+1,0]/gamma_progenitor
     #set p value for progenitors levels
     def set_p_values():
-        for i in range(1,mitotic_pool,1):
+        for i in range(1,mitotic_pool+2,1):
             rates_matrix_par[i,1]=p_prog
-        for i in range(mitotic_pool,number_levels_par-1,1):
+        for i in range(mitotic_pool+2,number_levels_par-1,1):
             rates_matrix_par[i,1]=p
     #Set q values for progenitors levels using delta and p
     def set_q_values():
@@ -121,6 +121,9 @@ def construct_rates(rates_matrix_par,number_levels_par,gamma_par,p_par,p_stem_ce
 def poison_array(array):
     rows,columns=np.shape(array)
     poison_array=np.zeros((rows,columns))
+    sanity_check=np.amin(array)
+    if sanity_check<0.0:
+        print(array)
     for i in range(rows):
         for k in range(columns):
             poison_array[i,k]=np.random.poisson(array[i,k])
@@ -160,6 +163,7 @@ def stabilize_and_number_cells(c_par,initial_rates_par,number_levels):
     local_rates=np.multiply(c_par.reshape(c_par.shape[0],1),local_rates)#Modifiyng rates according to actual number
 #    print(local_rates)
     local_rates=np.multiply(local_rates,delta_t)
+    local_rates[local_rates<0.0]=0.0
 #    print(local_rates)
     return local_rates
 #Function that creates the number of necessary blocks to allocate the new mutated cells
@@ -182,9 +186,9 @@ def add_block_rates(number_levels_par):
     length=np.shape(initial_rates)[0] #Calculating the length of the rates array
     last_block=np.copy(initial_rates[length-number_levels:length,:]) #Exctracting the last block in the array
     sum_rates=(np.sum(last_block,axis=1)*fitness_s) #Sum of all the rates in the level
-    non_zero_initial=np.where(last_block[:,0]>0)
-    non_zero_initial=np.isin(last_block[:,0],non_zero_initial,invert=True) #Ignoring rates with zero probability to not create new arrays
-    new_mutated_rates=np.add(last_block[:,0],sum_rates,where=non_zero_initial) #Creating new mutated rates block
+    non_zero_initial=np.where(last_block[:,0]==0.0)
+    sum_rates[non_zero_initial]=0.0
+    new_mutated_rates=np.add(last_block[:,0],sum_rates) #Creating new mutated rates block
     mutated_diff=np.add(last_block[:,1],-sum_rates)
     fitness_term=np.append(fitness_term,sum_rates)
     last_block[:,0]=new_mutated_rates #Modifying only the scd rates
@@ -295,20 +299,14 @@ def binomial_pdf(mu_par,num_cells):
 initial_rates,sanity_p_q=construct_rates(rates_matrix,number_levels,gamma,p,p_stem_cell,c_set) #Calling function contstruct rates
 t=np.zeros((1))
 add_block_rates(number_levels)
-c[24]=50
-#print(c_set)
-#simulation_step(number_levels)
-#print(c[21:])
-#print(c)
-#print(np.sum(c[0:20]))
-#print(np.sum(c[0:21]))
-#print(np.sum(c[0:22]))
-#print(c[number_levels-1])
-#print(np.sum(c[0:8]/c[number_levels-1])*100)
+#add_block_rates(number_levels)
+#add_block_rates(number_levels)
+#add_block_rates(number_levels)
+c[23]=50
 if sanity_p_q!=0:#Creating sanity check otherwise stop simulation
     while t<sim_time: #Iterating many steps of the KMC
         simulation_step(number_levels)
-        if c[24]==0:
+        if c[23]==0:
             print('extincted mutant')
             break
         if np.amax(c)>1e20:
@@ -319,6 +317,5 @@ else:
     print('The definitions of gamma and p are inconsistent (p or q > 1) please select new ones carefully')
 print(initial_rates)
 print(c_set)
-print(fitness_term)
 print('The number of the KMC steps is:', counter)
 print("--- Total time of the simulation in seconds: %s ---" % (time.time() - start_time)) #Print the total time of the simulation
