@@ -1,6 +1,13 @@
+#!/usr/bin/python3
+from os.path import expanduser
 import numpy as np
 import matplotlib.pyplot as plt
-
+import argparse
+parser=argparse.ArgumentParser()
+home = expanduser("~")
+parser.add_argument("-sim_num",help='Name of the simulation folder',type=str,default=0)
+parser.add_argument("-dummy",help='Number of the dummy variable for the particular simulation instance',type=str,default=0)
+args=parser.parse_args()
 def readrow(row, cols):
     data = np.fromstring(row, sep=' ')
     data.resize((cols,))
@@ -11,7 +18,8 @@ num_mut=30
 num_col=3
 
 #='result_lam_0.7_1_'
-dummy='0'
+dummy=args.dummy
+simulation_number=args.sim_num
 id_mu='1.0e-05'
 alpha='0.020'
 beta='0.70'
@@ -19,7 +27,8 @@ beta='0.70'
 id_epsilon='1.20'
 #='exp_1.50'
 id_rho='.'
-directory_name='final_'+'alpha_'+alpha+'_beta_'+beta+'_mu_'+id_mu+'_test_'+id_epsilon+'/'
+#directory_name='final_'+'alpha_'+alpha+'_beta_'+beta+'_mu_'+id_mu+'_test_'+id_epsilon+'/'
+directory_name=home+'/simulation_results/simulation_'+str(simulation_number)+'/'
 file_bm=directory_name+'bone_marrow_'+dummy
 file_blood=directory_name+'blood_'+dummy
 file_delta=directory_name+'delta_'+dummy
@@ -223,10 +232,10 @@ def delta_poster():
     plt.grid('True',which='both')
     plt.show()
 
-#delta()   
-#ratio_plots()
-#delta_time()
-#ratio_plots_bone()
-#graph_cells(0,num_lev,1)
-plot_wbc()
+delta()   
+ratio_plots()
+delta_time()
+ratio_plots_bone()
+graph_cells(0,num_lev,1)
+#plot_wbc()
 #delta_poster()
